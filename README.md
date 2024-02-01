@@ -2,6 +2,9 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
+1. cp .env.template .env.local
+2. npm i
+
 First, run the development server:
 
 ```bash
