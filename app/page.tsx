@@ -1,73 +1,14 @@
-import { gql } from "@/utils/gql";
-import { ShopifyExtension, ShopifyProduct } from "@/types";
-import Image from "next/image";
-import Link from "next/link";
-import { formatPrice } from "@/utils/formatPrice";
 import StatusFilter from "../components/StatusFilter";
-
-type GraphQLResponse = {
-  data: {
-    products: {
-      nodes: ShopifyProduct[];
-    };
-  };
-  extensions: ShopifyExtension;
-};
-
-const getProducts = async (stat: string): Promise<GraphQLResponse> => {
-  const res = await fetch(process.env.GRAPHQL_API_URL!, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Shopify-Access-Token": process.env.ADMIN_API_ACCESS_TOKEN!,
-    },
-    body: JSON.stringify({
-      query: gql`
-        query ProductsQuery {
-          products(first: 6, query: "${stat}") {
-            nodes {
-              id
-              description
-              featuredImage {
-                altText
-                height
-                id
-                url
-                width
-              }
-              handle
-              priceRangeV2 {
-                minVariantPrice {
-                  amount
-                  currencyCode
-                }
-              }
-              tags
-              title
-            }
-          }
-        }
-      `,
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text(); // get the response body for more information
-
-    throw new Error(`
-      Failed to fetch data
-      Status: ${res.status}
-      Response: ${text}
-    `);
-  }
-
-  return res.json();
-};
+import { getShopifyProducts } from "@/utils/shopify";
+import { ProductCard } from "@/components/ProductCard";
 
 export default async function Home({ searchParams }: any) {
   const status = searchParams?.stat;
-  const json = await getProducts(status === undefined ? "status:*" : status);
-
+  const result = await getShopifyProducts(
+    "products",
+    status === undefined ? "status:*" : status
+  );
+  const json = result.response;
   return (
     <main className="container mx-auto">
       <div className="px-5">
@@ -76,51 +17,12 @@ export default async function Home({ searchParams }: any) {
 
         <ul className="grid grid-cols-12 gap-4 pb-12">
           {json.data.products.nodes.map((product) => {
-            const prodId = product.id.split("/").pop();
-
             return (
               <li
                 key={product.id}
                 className="border border-slate-200 rounded-md overflow-hidden col-span-full md:col-span-6 lg:col-span-4"
               >
-                <div>
-                  <Image
-                    src={product.featuredImage.url}
-                    alt={product.featuredImage.altText}
-                    width={product.featuredImage.width}
-                    height={product.featuredImage.height}
-                    className="h-96 w-full object-cover"
-                    placeholder="blur"
-                    blurDataURL={product.featuredImage.url}
-                  />
-                </div>
-
-                <div className="p-5">
-                  {product.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="bg-yellow-400 m-1 font-bold py-1 px-3 rounded-full text-xs"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-
-                  <h3 className="font-medium mt-3 text-3xl">{product.title}</h3>
-
-                  <h4>
-                    {formatPrice(product.priceRangeV2.minVariantPrice.amount)}{" "}
-                    {product.priceRangeV2.minVariantPrice.currencyCode}
-                  </h4>
-
-                  <p className="mt-2 mb-4">{product.description}</p>
-
-                  <Link
-                    href={`/product/${prodId}`}
-                    className="border border-blue-600 inline-block p-2 rounded-md text-blue-600 hover:bg-blue-600 hover:text-white ease-in-out duration-150"
-                  >
-                    View Product
-                  </Link>
-                </div>
+                <ProductCard product={product} />
               </li>
             );
           })}

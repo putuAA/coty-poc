@@ -50,3 +50,18 @@ export type ShopifyProduct = {
         edges: object;
     }[]
 };
+
+export type GraphQLResponse = {
+    data: {
+        products: {
+            nodes: ShopifyProduct[];
+        };
+    };
+    extensions: ShopifyExtension;
+};
+
+export type SingleProdutPageProps = {
+    params: {
+        id: string;
+    };
+};
